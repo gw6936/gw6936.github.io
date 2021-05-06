@@ -1,0 +1,300 @@
+---
+title: 'Project 2: Modeling, Testing, and Predicting'
+author: "SDS348"
+date: ''
+output:
+  html_document:
+    toc: yes
+    toc_float:
+      collapsed: no
+      smooth_scroll: yes
+---
+
+```{r setup, include=FALSE}
+library(knitr)
+hook_output = knit_hooks$get('output')
+knit_hooks$set(output = function(x, options) {
+  # this hook is used only when the linewidth option is not NULL
+  if (!is.null(n <- options$linewidth)) {
+    x = knitr:::split_lines(x)
+    # any lines wider than n should be wrapped
+    if (any(nchar(x) > n)) x = strwrap(x, width = n)
+    x = paste(x, collapse = '\n')
+  }
+  hook_output(x, options)
+})
+
+knitr::opts_chunk$set(echo = TRUE, eval = TRUE,fig.align="center",warning=FALSE,message=FALSE,fig.width=8, fig.height=5, linewidth=60)
+options(tibble.width = 100,width = 100)
+library(tidyverse)
+
+#LEAVE THIS CHUNK ALONE!
+library(knitr)
+opts_chunk$set(fig.align="center", fig.height=5, message=FALSE, warning=FALSE, fig.width=8, tidy.opts=list(width.cutoff=60),tidy=TRUE)
+
+class_diag<-function(probs,truth){
+  
+  tab<-table(factor(probs>.5,levels=c("FALSE","TRUE")),truth)
+  acc=sum(diag(tab))/sum(tab)
+  sens=tab[2,2]/colSums(tab)[2]
+  spec=tab[1,1]/colSums(tab)[1]
+  ppv=tab[2,2]/rowSums(tab)[2]
+
+  if(is.numeric(truth)==FALSE & is.logical(truth)==FALSE) truth<-as.numeric(truth)-1
+  
+  #CALCULATE EXACT AUC
+  ord<-order(probs, decreasing=TRUE)
+  probs <- probs[ord]; truth <- truth[ord]
+  
+  TPR=cumsum(truth)/max(1,sum(truth)) 
+  FPR=cumsum(!truth)/max(1,sum(!truth))
+  
+  dup<-c(probs[-1]>=probs[-length(probs)], FALSE)
+  TPR<-c(0,TPR[!dup],1); FPR<-c(0,FPR[!dup],1)
+  
+  n <- length(TPR)
+  auc<- sum( ((TPR[-1]+TPR[-n])/2) * (FPR[-1]-FPR[-n]) )
+
+  data.frame(acc,sens,spec,ppv,auc)
+}
+```
+
+##### Gyeori Won (gw6936)
+
+<P style="page-break-before: always">
+\newpage
+
+### Introduction
+
+The dataset chosen for this project is `stroke` and this dataset shows 11 clinical features for predicting stroke events. There are originally 5110 observations with 12 attributes: id, gender, age, hypertension, heart disease, ever married, work type, residence type, avg glucose level, bmi, smoking status, and stroke. However, there were some rows without variables, and these rows were dropped to result in a final dataset with 4909 observations. The id is a unique identifier of each patient, age is a numeric variable, and gender is a categorical variable that tells whether the patient is a male or female. Hypertension, heart disease, and stroke are numeric binary variables, with 1 meaning the patient has a hypertension, heart disease, and stroke, and 0 meaning he/she does not. Ever married is a categorical variable that shows the marriage status of each patient. Work type is a categorical variable which shows the occupation status of each patient as being children, government worker, never worked, self-employed, or private. The residence type is another categorical variable that shows whether the patient is from an urban or rural residence. The avg glucose level and bmi are numerical variables that give insight to the average glucose level and the body mass index of each patient. Smoking status is a categorical variable that is distinguished by formerly smoked, never smoked, smokes, or unknown, in which unknown means that the information is unavailable for that patient.
+
+```{R}
+library(tidyverse)
+library(cluster)
+library(ggplot2)
+stroke <- read_csv("stroke.csv")
+#drop rows without data
+stroke <- stroke %>% drop_na()
+head(stroke)
+```
+
+### 1 - MANOVA test
+
+```{R}
+library(rstatix)
+group <- stroke$`work type`
+DVs <- stroke %>% select(age, `avg glucose level`, bmi)
+
+#Test multivariate normality for each group (null: assumption met)
+sapply(split(DVs, group), mshapiro_test)
+
+#Optionally view covariance matrices for each group
+lapply(split(DVs, group), cov)
+
+#MANOVA
+man1 <- manova(cbind(age, `avg glucose level`, bmi)~`work type`, data = stroke)
+summary(man1)
+
+#ANOVA
+summary.aov(man1)
+
+stroke %>% group_by(`work type`) %>% summarize(mean(age), mean(`avg glucose level`), mean(bmi))
+
+#post-hoc t test
+pairwise.t.test(stroke$bmi, stroke$`work type`, p.adj="none")
+pairwise.t.test(stroke$`avg glucose level`, stroke$`work type`, p.adj="none")
+
+#type 1 error
+1-0.95^20
+
+#bonferroni correction
+pairwise.t.test(stroke$`avg glucose level`, stroke$`work type`, p.adj="bonferroni")
+pairwise.t.test(stroke$bmi, stroke$`work type`, p.adj="bonferroni")
+
+#bonferroni adjusted significance level
+0.05/20
+```
+Multivariate normality for each group was tested in order to test for the MANOVA assumptions, and the resulting p value < 0.05 proves that the assumptions are most likely not met. A one-way MANOVA was conducted to determine the effect of work on three dependent variables of age, average glucose levels, and bmi. In doing so, significant differences were found across regions for at least one of the numeric variables, Pillai trace = 0.54294, pseudo F (12, 14712) = 270.91, p < 0.001. As follow-up tests to the MANOVA, univariate ANOVAs for each of the numeric variables were conducted. The ANOVAs also showed significant results on the two dependent numeric variables. For average glucose level, it was shown that F (4, 4904) = 16.6, p < 0.0001. For bmi, it was shown that F (4, 4094) = 312.41, p < 0.0001. Post-hoc t tests were performed on the 2 ANOVAs in pairwise comparisons to determine which works differed in average glucose level and bmi. 1 MANOVA, 3 ANOVAs, and 16 t tests were done to result in 20 tests total. The overall type-I error rate was 0.6415141, and the bonferroni adjusted significance level of α = 0.05/20 = 0.0025 should be used to keep the overall type-I error rate at 0.05. Post-hoc analysis was performed with the bonferroni adjustment and the results showed that all of the pairs except for government job and children, never worked and government job, private and government job, and private and never worked, differed significantly in the average glucose level. All of the pairs except for private and government job, self-employed and government job, and self-employed and private, differed significantly in bmi when the bonferroni correction was used.
+
+
+### 2 - Randomization test
+
+```{R}
+stroke1 <- stroke %>% select(gender, bmi)
+stroke1
+
+ggplot(stroke1, aes(bmi, fill = gender)) + geom_histogram(bins = 6.5) + facet_wrap(~gender, ncol = 2) + theme(legend.position = "none")
+
+set.seed(348)
+stroke1 %>% group_by(gender) %>% summarize(means = mean(bmi)) %>% summarize(diff(means))
+
+#randomization test
+rand_dist <- vector()
+for (i in 1:5000) {
+  new <- data.frame(bmi=sample(stroke1$bmi), gender=stroke1$gender)
+  rand_dist[i] <- mean(new[new$gender == "Female",]$bmi) - mean(new[new$gender == "Male",]$bmi)
+}
+mean(rand_dist > 0.4155212 | rand_dist < -0.4155212	)
+{hist(rand_dist,main="",ylab=""); abline(v = c(-0.4155212	, 0.4155212),col="red")}
+```
+A randomization test for the mean difference of bmi based on gender is conducted. The null hypothesis is that the mean bmi are the same for female and male patients. The alternative hypothesis is that the mean bmi are different for female and male patients. The two tailed p-value for the randomization test is p = 0.0686. Since p > 0.05, it can be concluded that there is not a significance difference in mean charges between female and male patients, and we fail to reject the null hypothesis.
+
+### 3 - Linear Regression Model
+
+```{R}
+#mean centering numeric variables
+stroke$avgglucoselevel_c <- (stroke$`avg glucose level` - mean(stroke$`avg glucose level`, na.rm = T))
+stroke$bmi_c <- (stroke$bmi - mean(stroke$bmi, na.rm = T))
+
+#linear regression
+fit <- lm(avgglucoselevel_c ~ bmi_c*gender, data=stroke); summary(fit)
+
+#plot
+ggplot(stroke, aes(x=bmi_c, y=avgglucoselevel_c, group=gender)) + geom_point(aes(color=gender)) + geom_smooth(method = "lm", aes(color=gender))
+
+#check assumptions of linearity, homoskedasticity
+resids <- fit$residuals
+fitvals <- fit$fitted.values
+ggplot() + geom_point(aes(fitvals, resids)) + geom_hline(yintercept = 0, color = 'red')
+
+library(sandwich)
+library(lmtest)
+bptest(fit)
+
+#normality
+ks.test(resids, "pnorm", mean=0, sd(resids))
+
+#robust standard errors
+coeftest(fit, vcov = vcovHC(fit))
+
+#proportion of variation in outcome
+(sum((stroke$avgglucoselevel_c - mean(stroke$avgglucoselevel_c))^2) - sum(fit$residuals^2)) / sum((stroke$avgglucoselevel_c - mean(stroke$avgglucoselevel_c))^2)
+```
+For female patients, for every 1 unit increase of bmi, average glucose level increases by 0.9387 (significant, t = 9.383, df = 4905, p < 0.0000000000000002). When controlling for bmi, males have average glucose levels that are 5.2194 greater than females (significant, t = 4.117, df = 4905, p = 0.0000391). The slope for bmi on average glucose level is 0.1688 greater for males compared to females (interaction is not significant, t = 1.027, df = 4905, p = 0.30469). The assumptions of linearity, normality, and homoskedasticity are not met becaue p < 0.05. Regression is then recomputed using the robust standard errors. When controlling for gender, there is a significant interaction between bmi and average glucose levels (t = 8.5232, p < 0.00000000000000022). There are no changes in significance after the robust SEs. The model explains 0.03432553 of the variation in the outcome.
+
+### 4 - Bootstrapped Linear Regression Model
+
+```{R}
+#linear regression
+fit <- lm(avgglucoselevel_c ~ bmi_c*gender, data=stroke); summary(fit)
+
+#bootstrapped SEs
+resids <- fit$residuals
+fitted <- fit$fitted.values
+resid_resamp<-replicate(5000,{
+new_resids <- sample(resids,replace=TRUE) 
+stroke$new_y <- fitted+new_resids
+fit2 <- lm(new_y~bmi_c*gender,data=stroke)
+coef(fit2) 
+})
+resid_resamp %>% t %>% as.data.frame %>% summarize_all(sd)
+
+#normal SEs
+coeftest(fit)
+
+#robust SEs
+coeftest(fit, vcov=vcovHC(fit))
+```
+The bootstrapped SEs are 0.09977304 for bmi, 1.260057 for genderMale, and 0.1661396 for bmi:genderMale. The bmi and genderMale SEs are slightly lower than the original SEs of 0.10004 for bmi and 1.26791 for genderMale, and the bmi:genderMale is slightly greater than the original SE of 0.16442 for bmi:genderMale. The robust SEs differ slightly from the bootstrapped SEs, as the bmi SE is greater at 0.11013, the genderMale SE is greater at 1.29410, and the bmi:genderMale SE is greater at 0.20565. In the bootstrapped regression, p-values can be predicted to decrease, differing from the original p-values that are < 0.0000000000000002 (significant),  0.0000391 (significant), and 0.30469 (not significant) for bmi, genderMale, and bmi:genderMale, respectively.
+
+### 5 - Logistic Regression Model
+
+```{R}
+#mean center age
+stroke$age_c <- (stroke$age - mean(stroke$age, na.rm = T))
+
+#logistic regression
+fit3 <- glm(`heart disease` ~ avgglucoselevel_c+age_c, data = stroke, family = binomial(link = "logit"))
+summary(fit3)
+exp(coef(fit3))
+
+#confusion matrix
+prob <- predict(fit3, type = "response")
+pred <- ifelse(prob>.5,1,0)
+table(predict=as.numeric(prob>0.2), truth=stroke$`heart disease`) %>% addmargins()
+
+#accuracy
+(4454+73)/4909
+#sensitivity (TPR)
+4454/4624
+#specificity (TNR)
+73/285
+#precision (PPV)
+4454/4666
+
+#density plot
+stroke$logit <- predict(fit3, type = "link")
+stroke$heartdisease1 <- as.factor(stroke$`heart disease`)
+stroke %>% group_by(heartdisease1) %>% ggplot() + geom_density(aes(logit, color = heartdisease1, fill = heartdisease1))
+
+#ROC curve
+library(plotROC)
+ROCplot <- ggplot(stroke) + geom_roc(aes(d = `heart disease`, m = prob), n.cuts = 0) + geom_segment(aes(x = 0, xend = 1, y = 0, yend = 1), lty = 2)
+ROCplot
+
+#calc AUC
+calc_auc(ROCplot)
+```
+When controlling for center age, for every 1 increase in average glucose level, the odds of having heart disease increases by a factor of 1.0059276 (significant). Controlling for center average glucose level, for every 1 year increase in center age, the odds of having heart disease increases by a factor of 1.07930003 (significant). A confusion matrix is conducted to produce an accuracy of 0.9221837, sensitivity (TPR) of 0.9632353, specificity (TNR) of 0.2561404, and precision (PPV) of 0.9545649. The accuracy is the proportion of correctly classified cases, sensitivity the true positive rate, specificity the true negative rate, and precision the proportion of those classified with heart disease and actually have heart disease. An ROC plot is made and the AUC is calculated to be 0.8571652, which is a good AUC predicting the prevalence of heart disease from average glucose level and age.
+
+### 6 - Logistic Regression Model for all variables
+
+```{R}
+#mean center bmi
+stroke$bmi_c <- (stroke$bmi - mean(stroke$bmi, na.rm = T))
+
+#logistic regression
+fit4 <- glm(`heart disease` ~ avgglucoselevel_c + age_c + gender + bmi_c + `smoking status` + `residence type`, data = stroke, family = binomial(link = "logit"))
+summary(fit4)
+exp(coef(fit4))
+
+#in-sample classification diagnostics
+prob1 <- predict(fit4, data = "response")
+class_diag(prob1, stroke$`heart disease`)
+
+#10 fold CV
+set.seed(1234)
+k = 10
+data <- stroke[sample(nrow(stroke)), ]
+folds <- cut(seq(1:nrow(stroke)), breaks = k, labels = F)
+diags <- NULL
+for (i in 1:k) {
+    train <- data[folds != i, ]
+    test <- data[folds == i, ]
+    truth1 <- test$`heart disease`
+    fit5 <- glm(`heart disease` ~ avgglucoselevel_c + age_c + gender + bmi_c + `smoking status` + `residence type` , data = train,
+        family = "binomial")
+    prob2 <- predict(fit5, newdata = test, type = "response")
+    diags <- rbind(diags, class_diag(prob2, truth1))
+}
+summarize_all(diags, mean)
+
+#LASSO
+library(glmnet)
+set.seed(1234)
+y <- as.matrix(stroke$`heart disease`)
+preds <- model.matrix(`heart disease` ~ avgglucoselevel_c + age_c + gender + bmi_c + `smoking status` + `residence type`, data = stroke) [, -1]
+head(preds)
+cv <- cv.glmnet(preds, y, family = "binomial")
+lasso_fit <- glmnet(preds, y, family = "binomial", lambda = cv$lambda.1se)
+coef(lasso_fit)
+
+#CV with LASSO
+set.seed(1234)
+k = 10
+data <- stroke[sample(nrow(stroke)), ]
+folds <- cut(seq(1:nrow(stroke)), breaks = k, labels = F)
+diags <- NULL
+for (i in 1:k) {
+    train2 <- data[folds != i, ]
+    test2 <- data[folds == i, ]
+    truth2 <- test2$`heart disease`
+    fit6 <- glm(`heart disease` ~ age_c, data = train2, 
+        family = "binomial")
+    prob3 <- predict(fit6, newdata = test2, type = "response")
+    diags <- rbind(diags, class_diag(prob3, truth2))
+}
+summarize_all(diags, mean)
+```
+A logistic regression is done to predict the prevalence of heart disease from average glucose level, age, and the response variables not used yet such as gender, bmi_c, smoking status, and residence type. There is a significant result from genderMale that if the patient is a male, the odds of having heart disease increases by a factor of 2.17936119 (significant). In-sample classifications are computed to show an accuracy of 0.9504991 which is the proportion of correctly classified cases, the sensitivity (TPR) is 0.004115226 which is the true positive rate, specificity (TNR) is 0.9997857 which is the true negative rate, PPV is NaN, and AUC is 0.8723724, which is considered good. A 10 fold CV is also conducted, and the out-of-sample classification diagnostics are found to be very similar to the in-sample classifications, showing an accuracy of 0.9504992, sensitivity of 0, specificity of 1, PPV of NaN, and an AUC of 0.8476613. LASSO is performed, and the only variables that are retained are avgglucoselevel_c, age_c, and genderMale. A 10 fold CV with LASSO is conducted to give an AUC of 0.8476613, a value that is identical to the out-of-sample diagnostics. As a result, the prevalence of heart disease can be predicted from average glucose level, age, gender, bmi, smoking status, and residence type since the AUCs of all diagnostics are good.
+

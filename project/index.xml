@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Projects on Chris Turner</title>
+    <link>/project/</link>
+    <description>Recent content in Projects on Chris Turner</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en-US</language><atom:link href="/project/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Project 1: Exploratory Data Analysis</title>
+      <link>/project/project1/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>/project/project1/</guid>
+      <description>Gyeori Won (gw6936)   Introduction I chose two datasets from Kaggle, named covid and vaccinations. The covid dataset includes 51 observations of 9 variables (1 categorical and 8 numeric). The 51 observations are of the 50 states and the District of Columbia, with the 8 numerical variables representing the data of infected population, deaths as a result of COVID19, the state population, ICU beds, the average income of residents, GDP, percentage of unemployment, and health spending regarding COVID19 for each state.</description>
+    </item>
+    
+    <item>
+      <title>Project 2: Modeling, Testing, and Predicting</title>
+      <link>/project/project2/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>/project/project2/</guid>
+      <description>Gyeori Won (gw6936)   Introduction The dataset chosen for this project is stroke and this dataset shows 11 clinical features for predicting stroke events. There are originally 5110 observations with 12 attributes: id, gender, age, hypertension, heart disease, ever married, work type, residence type, avg glucose level, bmi, smoking status, and stroke. However, there were some rows without variables, and these rows were dropped to result in a final dataset with 4909 observations.</description>
+    </item>
+    
+  </channel>
+</rss>

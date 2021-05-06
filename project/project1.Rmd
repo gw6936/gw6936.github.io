@@ -1,0 +1,157 @@
+---
+title: 'Project 1: Exploratory Data Analysis'
+author: "SDS348"
+date: ''
+output:
+  html_document:
+    toc: yes
+    toc_float:
+      collapsed: no
+      smooth_scroll: yes
+  pdf_document:
+    toc: no
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, eval = TRUE, fig.align = "center", warning = F, message = F,
+tidy=TRUE, tidy.opts=list(width.cutoff=60), R.options=list(max.print=100))
+```
+
+##### Gyeori Won (gw6936)
+
+<P style="page-break-before: always">
+\newpage
+
+### Introduction
+
+I chose two datasets from Kaggle, named `covid` and `vaccinations`. The `covid` dataset includes 51 observations of 9 variables (1 categorical and 8 numeric). The 51 observations are of the 50 states and the District of Columbia, with the 8 numerical variables representing the data of infected population, deaths as a result of COVID19, the state population, ICU beds, the average income of residents, GDP, percentage of unemployment, and health spending regarding COVID19 for each state. The `vaccinations` dataset also includes 1 categorical variable of states, but has 12 unique numerical variables distinct from the `covid` dataset. For each observation, total vaccinations, total vaccines distributed, people vaccinated, people fully vaccinated per hundred, total vaccinations per hundred, people fully vaccinated, people vaccinated per hundred, distributed per hundred, daily vaccinations raw, daily vaccinations, daily vaccinations per million, and share doses used are given.
+
+These datasets were chosen because I wanted to observe each state's current response to the COVID19 pandemic and how the actions in battling this pandemic can be influenced by economic stability. I expect potential associations between population and number of people infected, deaths, and number of ICU beds. I also expect states with higher health spending and greater population to have higher number of people fully vaccinated.
+
+``` {R}
+library(tidyverse)
+library(cluster)
+library(ggplot2)
+covid <- read_csv("COVID19_state.csv")
+vaccinations <- read_csv("us_state_vaccinations.csv")
+head(covid)
+head(vaccinations)
+```
+
+### Tidying: Rearranging Wide/Long
+
+The datasets are already tidy so the tidying functions are used in #3 to rearrange the summary statistics.
+    
+### Joining/Merging
+
+``` {R}
+#full join by State
+joindata <- full_join(covid, vaccinations, by = c("State"))
+head(joindata)
+```
+A full join was performed on the two datasets based on the common categorical variable 'State'. This type of join was chosen to retain all rows and columns from each dataset. The `covid` and `vaccinations` datasets were fully joined to create `joindata` that now has 21 variables consisting of 1 categorical variable 'State' and 20 numerical variables that correspond to each state.
+
+### Wrangling
+
+``` {R}
+#mutate to make a new numeric variable of the percent of population that are fully vaccinated
+joindata <- joindata %>% mutate(`vaccination percentage` = (`people fully vaccinated`/Population))
+
+#mutate used to create a new categorical variable
+joindata <- joindata %>% filter(`vaccination percentage` > 0) %>% mutate(`vaccination percentage cat` = case_when(`vaccination percentage` < 0.11 ~ "low", 0.1 <= `vaccination percentage` & `vaccination percentage` <= 0.13 ~ "med", `vaccination percentage` > 0.13 ~ "high"))
+
+#summary statistics alone
+joindata %>% rename_all(function(x) str_replace(x, "_", "")) %>% summarize_if(is.numeric, .funs = list(mean=mean, median=median, sd=sd, var=var, min=min, max=max), na.rm = T) %>% pivot_longer(contains("_")) %>% separate(name, sep = "_", into = c("variable", "Stat")) %>% pivot_wider(names_from = "variable", values_from = "value") %>% arrange(Stat)
+
+#summary statistics grouped by categories of percent fully vaccinated
+joindata %>% group_by(`vaccination percentage cat`) %>% select(is.numeric) %>% summarize_all(.funs = list(mean=mean, median=median, sd=sd, var=var, min=min, max=max), na.rm = T) %>% pivot_longer(c(-1), values_to = "values", names_to = "stat") %>% separate(stat, sep = "_", into = c("variable", "stat")) %>% pivot_wider(names_from = "variable", values_from = "values") %>% arrange(match(`vaccination percentage cat`, c("high", "med", "low")))
+
+#correlation matrix on numeric variables with the irrelevant columns removed
+joindata_num <- joindata %>% select(-`total vaccinations`, -`total distributed`, -`people fully vaccinated per hundred`, -`total vaccinations per hundred`, -`people vaccinated`, -`people vaccinated per hundred`, -`distributed per hundred`, -`daily vaccinations raw`, -`daily vaccinations`, -`daily vaccinations per million`, -`share doses used`) %>% column_to_rownames("State") %>% select_if(is.numeric)
+cor_data <- cor(joindata_num, use = "complete.obs")
+cor_data
+```
+The mutate function was initially used to create a new numeric variable that represents the percentage of people fully vaccinated in each state, as represented by the new variable 'vaccination percentage'. The mutate and filter functions were also used to create a new categorical variable called 'vaccination percentage cat', which categorizes the percentage of people fully vaccinated in each state into high, med, and low. Using the summarize function, a table of the summary statistics was created to show data of the mean, median, sd, variance, min, and max of each numerical variable. This summary statistics table was tidied using pivot_longer, which ordered the column names and their variables into two columns that were then separated into separate columns for the variable names and summary statistics by using separate(). To shift the rows into columns and make the table wide, pivot_wider() was used, followed by arrange() to alphabetize the statistic column.
+
+The summary statistics table was grouped by the 'vaccination percentage cat' variable by using group_by(), select(), and summarize(). To reshape the new table, pivot_longer(), separate(), pivot_wider(), and arrange() are used just like the previous overall summary statistics table. This new table shows the statistics of mean, median, sd, var, min, and max of each numerical variable for the high, med, and low groups. A correlation matrix is also created for all of the numeric variables in the data, and it shows that there are high correlations between ICU beds and infected, people fully vaccinated and population, infected and population, and ICU beds and population.
+
+### Visualizing
+    
+```{R}
+tidycor <- cor_data %>% as.data.frame %>% rownames_to_column("var1") %>% pivot_longer(-1, names_to = "var2", values_to = "correlation")
+tidycor
+
+#correlation heatmap
+tidycor %>% ggplot(aes(var1, var2, fill = correlation)) + geom_tile() + scale_fill_gradient2(low = "seagreen3", mid = "azure", high = "pink1") + geom_text(aes(label = round(correlation, 2)), color = "black", size = 2.9) + theme(axis.text.x = element_text(angle = 90, hjust = 1)) + coord_fixed() + ggtitle("Correlation Heatmap of Numeric Variables")
+```
+A correlation heatmap was created to show high correlation in pink and negative correlation in green. The heatmap shows highest correlations between population, people fully vaccinated, infected, and ICU beds. There was also high correlation between people fully vaccinated and population, infected and population, and people fully vaccinated and infected. There was almost no correlation between percentage of people vaccinated and any other variable.
+
+```{R}
+#barplot
+joindata %>% ggplot(aes(x = State, fill = `vaccination percentage cat`)) + geom_bar(aes(y = (`Health Spending`), position = "fill"), stat = "summary", fun = mean) + theme(axis.text.x = element_text(angle = 45, hjust = 1)) + scale_fill_manual("Vaccination", values = c(high = "slategray1", med = "rosybrown1", low = "darkseagreen2")) + scale_y_continuous(n.breaks = 10) + ggtitle("Health Spending in Each State") + xlab("State") + ylab("Health Spending ($)") + coord_flip()
+```
+A barplot was made that showed the average health spending per capita in each state, colored by 'vaccination percentage cat', a categorical variable. The high, medium, and low percentages of people fully vaccinated were represented by the colors slate gray, rosy brown, and dark sea green, respectively. This barplot illustrates an association, as seen by a higher percentage of people fully vaccinated in states with a higher health spending per capita. The states with medium percentage of people fully vaccinated generally have a medium health spending and the states with low percentage of people fully vaccinated have a medium/low health spending. The District of Columbia is odd in which it has a low vaccination percentage but the highest health spending. Ultimately, a positive correlation between health spending and the percentage of people vaccinated of each state can be supported by this plot.
+
+```{R}
+#scatter plot
+joindata %>% ggplot(aes(`ICU Beds`, Infected, color = Population)) + geom_point(size = 2) + scale_y_log10() + scale_x_log10() + scale_color_gradient(low = "darkslategray2", high = "darkorchid3") + ggtitle("ICU Beds vs. Infected") + xlab("ICU Beds") + ylab("Infected")
+```
+A scatterplot that plots the number of people infected vs. the number of ICU beds in a state is created in which the points are colored by the state population. Both the x and y axis of this plot were scaled by log10, and the result shows a strong positive correlation among the number of ICU beds, number of people infected, and state population. This illustrates that the greater the population in a state, the greater the number of ICU beds and the higher the number of people infected with COVID19.
+
+### Dimensionality Reduction
+
+```{R}
+#scale the variables first so that only numerical variables are chosen
+clust_data <- joindata %>% select(`people fully vaccinated`, Infected, Deaths, Population) %>% scale %>% as.data.frame
+```
+
+To cluster the data, the numeric variables of people fully vaccinated, infected, deaths, and population were selected for and scaled to be called `clust_data`.
+
+```{R}
+#choose number of clusters (k)
+sil_width <- vector()
+for (i in 2:10) {
+  pam_fit <- pam(clust_data, k = i) 
+  sil_width[i] <- pam_fit$silinfo$avg.width
+}
+#goodness of fit plot to show how many clusters to be used
+ggplot() + geom_line(aes(x = 1:10, y = sil_width)) + scale_x_continuous(name = "k", breaks = 1:10)
+```
+PAM clustering silhouette method was used to determine the number of clusters. A goodness of fit plot was created to show that the greatest width is between 2 groups, so 2 clusters are used for my PAM analysis.
+
+```{R}
+#PAM cluster analysis
+pam_data <- clust_data %>% pam(2)
+pam_data
+```
+A new data called `pam_data` is created by performing a PAM cluster analysis with 2 clusters.
+
+```{R}
+#cluster visualization
+clust_data <- clust_data %>% mutate(cluster = as.factor(pam_data$clustering))
+ggplot(clust_data, aes(x = `people fully vaccinated`, y = Infected, color = cluster)) + geom_point()
+```
+A scatterplot of the cluster data is made to show people vaccinated vs. Infected. The clusters are colored to separate the 2 clusters and the plot shows a more numerous and concentrated first cluster in red, and a more sparse second cluster with less observations in dark cyan.
+
+```{R}
+#visualization of the pairwise combinations
+library(GGally)
+ggpairs(clust_data, aes(color = cluster))
+```
+A visualization of the pairwise combinations that shows all of the 4 variables in 2 cluster groups are created.
+
+```{R}
+#interpreting average silhouette width
+pam_data$silinfo$avg.width
+plot(pam_data, which = 2)
+```
+A silhouette plot of 2 clusters is created to show an average silhouette width of 0.77, indicating that a strong structure has been formed.
+
+```{R}
+#interpret cluster
+clust_data %>% mutate(cluster = pam_data$clustering) %>% group_by(cluster) %>% rename_all(function(x) str_replace(x, "_", "")) %>% summarize_if(is.numeric, .funs = list(mean = mean, median = median, sd = sd), na.rm = T) %>% pivot_longer(contains("_")) %>% separate(name, sep = "_", into = c("variable", "stat")) %>% pivot_wider(names_from = "variable", values_from = "value") %>% arrange(stat)
+```
+The summary statistics of mean, median, and sd for the four variables in both clusters are found.
+
+PAM clustering was used on the four numeric variables of people fully vaccinated, Infected, Deaths, and Population. The PAM clustering silhouette showed that 2 clusters should be used for the analysis since there was a greatest width at k = 2. An analysis was performed and visualized to show how far the clusters are away from each other. This resulted in 2 separate clusters in which one is numerous and concentrated while the other is sparse with less observations. The analysis also resulted in an average silhouette width of 0.77, which can be interpreted as finding a strong structure. A summary statistics table of mean, median, and sd for the four variables was also created for each cluster. The mean and median of cluster 1 were negative while other statistics for both cluster 1 and cluster 2 remained positive. It can also be observed that cluster 1 has a much smaller standard deviation than cluster 2 does. Ultimately, this statistics table showed a consistency with the silhouette method and plots created above to visualize the 2 clusters.
+
