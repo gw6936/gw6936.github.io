@@ -1,0 +1,44 @@
+
+
+
+<p>+++
+title = “Using Python and the Reticulate Function”
+description = ""
+tags = []
+categories = []
++++</p>
+<p>Here’s something cool that I found:
+Regular expressions extract information from text by searching for matches of a specific pattern, and I will be exploring the findall() tool today! This function finds all of the matches and returns them as a list of strings that each represents one match. Here is a basic example to find different matches, looking at a string of “abc aab ab acb cab c”.</p>
+<pre class="python"><code>import re
+x=&quot;abc aab ab acb cab c&quot;
+#this grabs all instances
+re.findall(r&quot;a.&quot;,x)</code></pre>
+<pre><code>## [&#39;ab&#39;, &#39;aa&#39;, &#39;ab&#39;, &#39;ac&#39;, &#39;ab&#39;]</code></pre>
+<pre class="python"><code>import re
+x=&quot;abc aab ab acb cab c&quot;
+#this grabs matches with 1 or more &quot;a&quot;s
+re.findall(r&quot;a+&quot;,x)</code></pre>
+<pre><code>## [&#39;a&#39;, &#39;aa&#39;, &#39;a&#39;, &#39;a&#39;, &#39;a&#39;]</code></pre>
+<pre class="python"><code>import re
+x=&quot;abc aab ab acb cab c&quot;
+#this grabs instances where there are two &quot;a&quot;s together
+re.findall(r&quot;a{2}&quot;,x)</code></pre>
+<pre><code>## [&#39;aa&#39;]</code></pre>
+<pre class="python"><code>import re
+x=&quot;abc aab ab acb cab c&quot;
+#this grabs instances that begin with an &quot;a&quot; and have two letters after
+re.findall(r&quot;a..\s&quot;,x)</code></pre>
+<pre><code>## [&#39;abc &#39;, &#39;aab &#39;, &#39;acb &#39;]</code></pre>
+<p><img src="/img/python.png" /></p>
+<p>Did you also know that Python and R can communicate?! This really blew my mind.
+By using a handy package called reticulate, R can talk.. and so can Python!
+Here is R talking…</p>
+<pre class="r"><code>#R code chunk
+library(reticulate)
+Rtalk &lt;- &quot;&#39;Hello, this is R speaking!&#39;&quot;</code></pre>
+<p>… and here is Python responding!</p>
+<pre class="python"><code>#Python code chunk
+Ptalk=&quot;&#39;Hi R, this is Python. Nice to meet you!&#39;&quot;
+print(r.Rtalk, Ptalk)</code></pre>
+<pre><code>## &#39;Hello, this is R speaking!&#39; &#39;Hi R, this is Python. Nice to meet you!&#39;</code></pre>
+<p>Ta-dah! Even though R and Python speak different languages, through the reticulate package, they can communicate beautifully!</p>
