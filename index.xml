@@ -5,7 +5,17 @@
     <link>/</link>
     <description>Recent content on Gyeori Won</description>
     <generator>Hugo -- gohugo.io</generator>
-    <language>en-US</language><atom:link href="/index.xml" rel="self" type="application/rss+xml" />
+    <language>en-US</language>
+    <lastBuildDate>Fri, 07 May 2021 00:00:00 +0000</lastBuildDate><atom:link href="/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Python - Regular Expressions and Reticulate</title>
+      <link>/post/2021/05/07/new/</link>
+      <pubDate>Fri, 07 May 2021 00:00:00 +0000</pubDate>
+      
+      <guid>/post/2021/05/07/new/</guid>
+      <description>Here’s something cool that I found: Regular expressions extract information from text by searching for matches of a specific pattern, and I will be exploring the findall() tool today! This function finds all of the matches and returns them as a list of strings that each represents one match. Here is a basic example to find different matches, looking at a string of “abc aab ab acb cab c”.</description>
+    </item>
+    
     <item>
       <title>Project 1: Exploratory Data Analysis</title>
       <link>/project/project1/</link>

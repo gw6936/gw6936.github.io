@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en-US">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="author" content="Gyeori Won" />
+    
+    <link rel="shortcut icon" type="image/x-icon" href="../../../../../img/favicon.ico">
+    <title>Python - Regular Expressions and Reticulate</title>
+    <meta name="generator" content="Hugo 0.83.1" />
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+    <link rel="stylesheet" type="text/css" href="../../../../../css/main.css" />
+    <link rel="stylesheet" type="text/css" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" />
+    <link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,400,200bold,400old" />
+    
+    <!--[if lt IE 9]>
+			<script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+			<script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+		<![endif]-->
+
+    
+  </head>
+
+  <body>
+    <div id="wrap">
+      
+      <nav class="navbar navbar-default">
+  <div class="container">
+    <div class="navbar-header">
+      <a class="navbar-brand" href="../../../../../"><i class="fa fa-home"></i></a>
+      <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+    </div>
+    <div class="navbar-collapse collapse" id="navbar">
+      <ul class="nav navbar-nav navbar-right">
+      
+        
+        <li><a href="../../../../../post/">BLOG</a></li>
+        
+        <li><a href="../../../../../projects/">PROJECTS</a></li>
+        
+        <li><a href="../../../../../resume/">RESUME</a></li>
+        
+      
+      </ul>
+    </div>
+  </div>
+</nav>
+
+      <div class="container">
+        <div class="blog-post">
+          <h3>
+            <strong><a href="../../../../../post/2021/05/07/new/">Python - Regular Expressions and Reticulate</a></strong>
+          </h3>
+        </div>
+ 
+<div class="blog-title">
+          <h4>
+         May 7, 2021 
+            &nbsp;&nbsp;
+            
+          </h4>
+        </div>
+
+        <div class="panel panel-default">
+          <div class="panel-body">
+            <div class="blogpost">
+              
+
+
+<p>Here’s something cool that I found:
+Regular expressions extract information from text by searching for matches of a specific pattern, and I will be exploring the findall() tool today! This function finds all of the matches and returns them as a list of strings that each represents one match. Here is a basic example to find different matches, looking at a string of “abc aab ab acb cab c”.</p>
+<pre class="python"><code>import re
+x=&quot;abc aab ab acb cab c&quot;
+#this grabs all instances
+re.findall(r&quot;a.&quot;,x)</code></pre>
+<pre><code>## [&#39;ab&#39;, &#39;aa&#39;, &#39;ab&#39;, &#39;ac&#39;, &#39;ab&#39;]</code></pre>
+<pre class="python"><code>import re
+x=&quot;abc aab ab acb cab c&quot;
+#this grabs matches with 1 or more &quot;a&quot;s
+re.findall(r&quot;a+&quot;,x)</code></pre>
+<pre><code>## [&#39;a&#39;, &#39;aa&#39;, &#39;a&#39;, &#39;a&#39;, &#39;a&#39;]</code></pre>
+<pre class="python"><code>import re
+x=&quot;abc aab ab acb cab c&quot;
+#this grabs instances where there are two &quot;a&quot;s together
+re.findall(r&quot;a{2}&quot;,x)</code></pre>
+<pre><code>## [&#39;aa&#39;]</code></pre>
+<pre class="python"><code>import re
+x=&quot;abc aab ab acb cab c&quot;
+#this grabs instances that begin with an &quot;a&quot; and have two letters after
+re.findall(r&quot;a..\s&quot;,x)</code></pre>
+<pre><code>## [&#39;abc &#39;, &#39;aab &#39;, &#39;acb &#39;]</code></pre>
+<p><img src="../../../../../img/python.png" /></p>
+<p>Did you also know that Python and R can communicate?! This really blew my mind.
+By using a handy package called reticulate, R can talk.. and so can Python!
+Here is R talking…</p>
+<pre class="r"><code>#R code chunk
+library(reticulate)
+Rtalk &lt;- &quot;&#39;Hello, this is R speaking!&#39;&quot;</code></pre>
+<p>… and here is Python responding!</p>
+<pre class="python"><code>#Python code chunk
+Ptalk=&quot;&#39;Hi R, this is Python. Nice to meet you!&#39;&quot;
+print(r.Rtalk, Ptalk)</code></pre>
+<pre><code>## &#39;Hello, this is R speaking!&#39; &#39;Hi R, this is Python. Nice to meet you!&#39;</code></pre>
+<p>Ta-dah! Even though R and Python speak different languages, through the reticulate package, they can communicate beautifully!</p>
+
+            
+        <hr>         <div class="related-posts">
+                <h5>Related Posts</h5>
+                
+              </div> 
+            </div>
+          </div>
+
+   <hr>  <div class="disqus">
+  <div id="disqus_thread"></div>
+  <script type="text/javascript">
+
+    (function() {
+      
+      
+      if (window.location.hostname == "localhost")
+        return;
+
+      var disqus_shortname = '';
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+  </script>
+  <noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+  <a href="http://disqus.com/" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+</div> 
+        </div>
+      </div>
+    </div>
+
+    
+    <footer>
+  <div id="footer">
+    <div class="container">
+      <p class="text-muted">&copy; All rights reserved. Powered by <a href="https://gohugo.io/">Hugo</a> and
+      <a href="http://www.github.com/nurlansu/hugo-sustain/">sustain</a> with ♥</p>
+    </div>
+  </div>
+</footer>
+<div class="footer"></div>
+
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+<script src="../../../../../js/docs.min.js"></script>
+<script src="../../../../../js/main.js"></script>
+
+<script src="../../../../../js/ie10-viewport-bug-workaround.js"></script>
+
+
+    
+  </body>
+</html>
